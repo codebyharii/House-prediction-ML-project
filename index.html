@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>House Price Predictor</title>
+  <style>
+    /* ------- basic CSS ------- */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 340px;
+    }
+    h1 { font-size: 20px; text-align: center; }
+    label { display: block; margin-top: 12px; font-size: 14px; }
+    input, select {
+      width: 100%; padding: 8px; margin-top: 4px;
+      border: 1px solid #ccc; border-radius: 6px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%; margin-top: 18px; padding: 10px;
+      background: #2563eb; color: white; border: none;
+      border-radius: 6px; font-size: 15px; cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    #result {
+      margin-top: 18px; text-align: center;
+      font-size: 18px; font-weight: bold; color: #16a34a;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🏠 House Price Predictor</h1>
+
+    <label>Median Income (e.g. 3.5)</label>
+    <input type="number" id="median_income" value="3.5" step="0.1">
+
+    <label>Total Rooms</label>
+    <input type="number" id="total_rooms" value="1000">
+
+    <label>Housing Median Age</label>
+    <input type="number" id="housing_median_age" value="25">
+
+    <label>Population</label>
+    <input type="number" id="population" value="800">
+
+    <label>Ocean Proximity</label>
+    <select id="ocean_proximity">
+      <option value="INLAND">INLAND</option>
+      <option value="NEAR BAY">NEAR BAY</option>
+      <option value="NEAR OCEAN">NEAR OCEAN</option>
+      <option value="<1H OCEAN"><1H OCEAN</option>
+      <option value="ISLAND">ISLAND</option>
+    </select>
+
+    <button onclick="predictPrice()">Predict Price</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    // ------- JavaScript: frontend se backend ko baat karana -------
+    async function predictPrice() {
+      // Step 1: form se values uthao
+      const income = parseFloat(document.getElementById("median_income").value);
+      const rooms = parseFloat(document.getElementById("total_rooms").value);
+      const age = parseFloat(document.getElementById("housing_median_age").value);
+      const population = parseFloat(document.getElementById("population").value);
+      const ocean = document.getElementById("ocean_proximity").value;
+
+      // Step 2: model ko jitne columns chahiye, sabhi bhejne padte hain.
+      // Baaki fields ke liye simple typical values daal di hain.
+      const data = {
+        "longitude": -119.5,
+        "latitude": 35.6,
+        "housing_median_age": age,
+        "total_rooms": rooms,
+        "total_bedrooms": rooms * 0.2,   // roughly 20% rooms are bedrooms
+        "population": population,
+        "households": population * 0.35,
+        "median_income": income,
+        // one-hot encoding: jo option chuna hai wahi 1, baaki 0
+        "ocean_proximity_<1H OCEAN": ocean === "<1H OCEAN" ? 1 : 0,
+        "ocean_proximity_INLAND": ocean === "INLAND" ? 1 : 0,
+        "ocean_proximity_ISLAND": ocean === "ISLAND" ? 1 : 0,
+        "ocean_proximity_NEAR BAY": ocean === "NEAR BAY" ? 1 : 0,
+        "ocean_proximity_NEAR OCEAN": ocean === "NEAR OCEAN" ? 1 : 0
+      };
+
+      // Step 3: backend API ko data bhejo (fetch se)
+      const response = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+
+      // Step 4: jawab lo aur screen pe dikhao
+      const result = await response.json();
+      document.getElementById("result").innerText =
+        "Estimated Price: $" + result.predicted_price.toLocaleString();
+    }
+  </script>
+</body>
+</html>
